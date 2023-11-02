@@ -23,6 +23,7 @@ type Graph struct {
 type NNLayer struct {
 	Neurons     int
 	Activations []int
+	Synapse     [][]int
 }
 
 type NNGraph struct {
@@ -52,19 +53,6 @@ func NewNNGraph(n int, g *Graph) (*NNGraph, error) {
 		NNLayers:       make([]NNLayer, n),
 		WinGraph:       g,
 	}, nil
-}
-
-func RenderCircle(r *sdl.Renderer, x, y, radius int, c sdl.Color) {
-	for i := 0; i < 2*radius; i++ {
-		for j := 0; j < 2*radius; j++ {
-			dx := radius - i
-			dy := radius - j
-			if (dx*dx + dy*dy) <= radius*radius {
-				_ = r.SetDrawColor(c.R, c.G, c.B, c.A)
-				_ = r.DrawPoint(int32(x+dx), int32(y+dy))
-			}
-		}
-	}
 }
 
 // NewGraph: creates sdl window and renderer
@@ -97,6 +85,21 @@ func NewGraph(wp WinProp) (*Graph, error) {
 	}, nil
 }
 
+// RenderCircle: render a full circle
+func RenderCircle(r *sdl.Renderer, x, y, radius int, c sdl.Color) {
+	for i := 0; i < 2*radius; i++ {
+		for j := 0; j < 2*radius; j++ {
+			dx := radius - i
+			dy := radius - j
+			if (dx*dx + dy*dy) <= radius*radius {
+				_ = r.SetDrawColor(c.R, c.G, c.B, c.A)
+				_ = r.DrawPoint(int32(x+dx), int32(y+dy))
+			}
+		}
+	}
+}
+
+// RenderNetwork:
 func (n *NNGraph) RenderNetwork() error {
 	// shorthand for sdl2 renderer
 	r := n.WinGraph.Renderer
@@ -110,37 +113,45 @@ func (n *NNGraph) RenderNetwork() error {
 		return err
 	}
 
-	// layer width & offset in X direction
+	// layer width, offset in X direction & initial x position
 	layerWidth := n.WinGraph.Props.Width / len(n.NNLayers)
 	xOffset := layerWidth / 2
+	xBegin, yBegin := 1, 1
 
 	// loop over layers
 	for i := 0; i < len(n.NNLayers); i++ {
+		// shortcut
 		layer := n.NNLayers[i]
+
+		// loop over neurons at a fixed layer
 		for j := 0; j < layer.Neurons; j++ {
 			// positions of neurons (x,y)
-			x := xOffset + i*layerWidth
-			neuronHeight := 1 + n.WinGraph.Props.Height/layer.Neurons
+			x := xBegin + xOffset + i*layerWidth
+			neuronHeight := n.WinGraph.Props.Height / layer.Neurons
 			yOffset := neuronHeight / 2
-			y := yOffset + j*neuronHeight
+			y := yBegin + yOffset + j*neuronHeight
 
-			// connect neurons to next layer
-			if i < len(n.NNLayers)-1 {
+			// connect neurons to next layer (synapse)
+			if i < len(n.NNLayers)-1 { // no need to do this for the output layer
+				// shortcut
 				nextLayer := n.NNLayers[i+1]
-				for k := 0; k < nextLayer.Neurons; k++ {
-					xNext := xOffset + (i+1)*layerWidth
-					neuronHeightNext := 1 + n.WinGraph.Props.Height/nextLayer.Neurons
-					yOffsetNext := neuronHeightNext / 2
-					yNext := yOffsetNext + k*neuronHeightNext
 
-					_ = r.SetDrawColor(0x55, 0x55, 0x55, 80) // color of links
+				// link each neuron in the layer with neurons in the next layer
+				for k := 0; k < nextLayer.Neurons; k++ {
+					// positions of neurons in next layer (xNext, yNext)
+					xNext := xBegin + xOffset + (i+1)*layerWidth
+					neuronHeightNext := n.WinGraph.Props.Height / nextLayer.Neurons
+					yOffsetNext := neuronHeightNext / 2
+					yNext := yBegin + yOffsetNext + k*neuronHeightNext
+
+					_ = r.SetDrawColor(0x55, 0x55, 0x55, 80) // color of links (TODO: change according to synapse values)
 					_ = r.DrawLine(int32(x), int32(y), int32(xNext), int32(yNext))
 				}
 			}
 
 			// draw neurons
 			bStrength := layer.Activations[j]
-			c := genColorGradient(bStrength)
+			c := ColorBlend(bStrength)
 			neuronSize := 1 + (100 / layer.Neurons)
 			RenderCircle(r, x, y, neuronSize, c)
 		}
@@ -148,22 +159,6 @@ func (n *NNGraph) RenderNetwork() error {
 
 	r.Present()
 	return nil
-}
-
-func genColorGradient(num int) sdl.Color {
-	startR, startG := 15, 10
-	w := float64(num) / 255
-
-	r := float64(startR) * (1 - w)
-	g := float64(startG) * (1 - w)
-	b := float64(255) * w
-
-	return sdl.Color{
-		R: uint8(r),
-		G: uint8(g),
-		B: uint8(b),
-		A: uint8(255),
-	}
 }
 
 // Close: call upon closing the display graph
