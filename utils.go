@@ -5,11 +5,7 @@ import (
 )
 
 // InterpRatio:
-func InterpRatio(arr []float64) []int {
-	// constants
-	minX := -10.0
-	maxX := 10.0
-
+func InterpRatio(arr []float64, minX, maxX float64) []int {
 	// interp between arr and the output (ratio)
 	ratio := make([]int, len(arr))
 	for k := 0; k < len(arr); k++ {

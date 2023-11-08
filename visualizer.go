@@ -23,7 +23,6 @@ type Graph struct {
 type NNLayer struct {
 	Neurons     int
 	Activations []int
-	Synapse     [][]int
 }
 
 type NNGraph struct {
