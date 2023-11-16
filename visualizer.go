@@ -6,6 +6,9 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+// set this to control max number of neurons per layer to display
+const MaxNeuronsPerLayer int = 40
+
 // WinProp: properties of display window
 type WinProp struct {
 	X      int
@@ -122,6 +125,11 @@ func (n *NNGraph) RenderNetwork() error {
 		// shortcut
 		layer := n.NNLayers[i]
 
+		// in case there are a lot of neurons, fix value to 40 as this is just a display
+		if layer.Neurons > MaxNeuronsPerLayer {
+			layer.Neurons = MaxNeuronsPerLayer
+		}
+
 		// loop over neurons at a fixed layer
 		for j := 0; j < layer.Neurons; j++ {
 			// positions of neurons (x,y)
@@ -143,7 +151,8 @@ func (n *NNGraph) RenderNetwork() error {
 					yOffsetNext := neuronHeightNext / 2
 					yNext := yBegin + yOffsetNext + k*neuronHeightNext
 
-					_ = r.SetDrawColor(0x55, 0x55, 0x55, 80) // color of links (TODO: change according to synapse values)
+					// color of links (TODO: change according to synapse values)
+					_ = r.SetDrawColor(0x55, 0x55, 0x55, 80)
 					_ = r.DrawLine(int32(x), int32(y), int32(xNext), int32(yNext))
 				}
 			}
